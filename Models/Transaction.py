@@ -42,29 +42,22 @@ class Transaction(object):
 class LightTransaction():
 
     pending_transactions=[] # shared pool of pending transactions
-
+    ORDERING_TOGGLE = "FIFO"
     def create_transactions():
 
         LightTransaction.pending_transactions=[]
         pool= LightTransaction.pending_transactions
         Psize= int(p.Tn * p.Binterval)
 
-
-        for i in range(Psize):
-            # assign values for transactions' attributes. You can ignore some attributes if not of an interest, and the default values will then be used
+        for i in range(Psize):            
             tx= Transaction()
-
             tx.id= random.randrange(100000000000)
             tx.sender = random.choice (p.NODES).id
             tx.to= random.choice (p.NODES).id
             tx.size= random.expovariate(1/p.Tsize)
             tx.fee= random.expovariate(1/p.Tfee)
-
             pool += [tx]
-
-
         random.shuffle(pool)
-
 
     ##### Select and execute a number of transactions to be added in the next block #####
     def execute_transactions():
@@ -74,7 +67,12 @@ class LightTransaction():
         blocksize = p.Bsize
         pool= LightTransaction.pending_transactions
 
-        pool = sorted(pool, key=lambda x: x.fee, reverse=True) # sort pending transactions in the pool based on the gasPrice value
+        # pool = sorted(pool, key=lambda x: x.fee, reverse=True) # sort pending transactions in the pool based on the gasPrice value
+        if LightTransaction.ORDERING_TOGGLE == "FIFO":
+            print("Executing block with FIFO ordering")
+        else:
+            print("Executing block with FEE-priority ordering")
+            pool = sorted(pool, key=lambda x: x.fee, reverse=True)
 
         while count < len(pool):
                 if  (blocksize >= pool[count].size):
