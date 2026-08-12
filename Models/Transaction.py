@@ -42,10 +42,12 @@ class Transaction(object):
 class LightTransaction():
 
     pending_transactions=[] # shared pool of pending transactions
-    ORDERING_TOGGLE = "FIFO"
+    ORDERING_TOGGLE = "FEE"
+    _arrival_counter = 0
     def create_transactions():
 
         LightTransaction.pending_transactions=[]
+        LightTransaction._arrival_counter = 0
         pool= LightTransaction.pending_transactions
         Psize= int(p.Tn * p.Binterval)
 
@@ -56,8 +58,13 @@ class LightTransaction():
             tx.to= random.choice (p.NODES).id
             tx.size= random.expovariate(1/p.Tsize)
             tx.fee= random.expovariate(1/p.Tfee)
+            # assign an arrival timestamp for FIFO ordering
+            tx.timestamp = LightTransaction._arrival_counter
+            LightTransaction._arrival_counter += 1
             pool += [tx]
-        random.shuffle(pool)
+        # Preserve FIFO ordering when requested. Shuffle only for non-FIFO modes.
+        if LightTransaction.ORDERING_TOGGLE != "FIFO":
+            random.shuffle(pool)
 
     ##### Select and execute a number of transactions to be added in the next block #####
     def execute_transactions():
@@ -69,7 +76,8 @@ class LightTransaction():
 
         # pool = sorted(pool, key=lambda x: x.fee, reverse=True) # sort pending transactions in the pool based on the gasPrice value
         if LightTransaction.ORDERING_TOGGLE == "FIFO":
-            print("Executing block with FIFO ordering")
+            print("Executing block with FIFO ordering (by timestamp)")
+            pool = sorted(pool, key=lambda x: x.timestamp)
         else:
             print("Executing block with FEE-priority ordering")
             pool = sorted(pool, key=lambda x: x.fee, reverse=True)
@@ -80,6 +88,8 @@ class LightTransaction():
                     transactions += [pool[count]]
                     size += pool[count].size
                 count+=1
+        remaining = [tx for tx in pool if tx not in transactions]
+        LightTransaction.pending_transactions = remaining
 
         return transactions, size
 
